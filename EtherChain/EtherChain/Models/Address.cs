@@ -1,19 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
+using ZeroFormatter;
 
 namespace EtherChain.Models
 {
-    [Serializable]
+    [ZeroFormattable]
     public class Address
     {
-        public Address()
-        {
-            Balance = 0;
-            TrKeys = new List<long>();
-        }
+        [Index(0)]
+        public virtual BigInteger Balance { get; set; }
 
-        public BigInteger Balance;
-        public List<long> TrKeys;
+        [Index(1)]
+        public virtual IList<long> TrKeys { get; set; }
     }
 }

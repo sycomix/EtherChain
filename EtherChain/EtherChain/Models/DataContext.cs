@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using RocksDbSharp;
+using ZeroFormatter;
 
 namespace EtherChain.Models
 {
@@ -27,16 +29,16 @@ namespace EtherChain.Models
 
         public Address GetAddress(string address)
         {
-            var formatter = new BinaryFormatter();
-            MemoryStream stream = new MemoryStream();
-
             // Update the balances
-            Address add = new Address();
+            Address add = new Address
+            {
+                Balance = 0,
+                TrKeys = new List<long>()
+            };
             var fromDataBytes = _db.Get(Encoding.ASCII.GetBytes(address));
             if (fromDataBytes != null)
             {
-                stream.Write(fromDataBytes);
-                add = (Address)formatter.Deserialize(stream);
+                add = ZeroFormatterSerializer.Deserialize<Address>(fromDataBytes);
             }
 
             return add;
@@ -44,10 +46,7 @@ namespace EtherChain.Models
 
         private void PutAddress(Address address, string name)
         {
-            var formatter = new BinaryFormatter();
-            MemoryStream stream = new MemoryStream();
-            formatter.Serialize(stream, address);
-            _db.Put(Encoding.ASCII.GetBytes(name), stream.GetBuffer());
+            _db.Put(Encoding.ASCII.GetBytes(name), ZeroFormatterSerializer.Serialize(address));
         }
 
         public long AddTransaction(Transaction transaction)
@@ -56,22 +55,34 @@ namespace EtherChain.Models
 
             // Update the addresses
             Address from = GetAddress(transaction.FromAddress);
+            Console.WriteLine(transaction.FromAddress + ": " + from.Balance);
             from.Balance -= transaction.Amount + transaction.Gas * transaction.GasPrice;
             from.TrKeys.Add(_lastTxId);
             PutAddress(from, transaction.FromAddress);
 
-            Address to = GetAddress(transaction.ToAddress);
-            to.Balance = transaction.Amount;
-            to.TrKeys.Add(_lastTxId);
-            PutAddress(to, transaction.ToAddress);
+            if (!string.IsNullOrEmpty(transaction.ToAddress))
+            {
+                Address to = GetAddress(transaction.ToAddress);
+                Console.WriteLine(transaction.ToAddress + ": " + to.Balance);
+                to.Balance = transaction.Amount;
+                to.TrKeys.Add(_lastTxId);
+                PutAddress(to, transaction.ToAddress);
+            }
 
             // Add the transaction
-            var formatter = new BinaryFormatter();
-            MemoryStream stream = new MemoryStream();
-            formatter.Serialize(stream, transaction);
-            _db.Put(BitConverter.GetBytes(_lastTxId), stream.GetBuffer());
+            _db.Put(BitConverter.GetBytes(_lastTxId), ZeroFormatterSerializer.Serialize(transaction));
 
             return _lastTxId;
+        }
+
+        public void Put(string key, string value)
+        {
+            _db.Put(key, value);
+        }
+
+        public string Get(string key)
+        {
+            return _db.Get(key);
         }
     }
 }
