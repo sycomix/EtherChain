@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Numerics;
 using System.Threading;
+using System.Threading.Tasks;
 using EtherChain.Models;
 using Nethereum.Web3;
 
@@ -12,6 +13,7 @@ namespace EtherChain.Services.Sync
     {
         private DataContext _db;
         private BigInteger _lastSyncedBlock;
+        public bool StopAutoSync = false;
 
         public EtherSync(DataContext db)
         {
@@ -20,9 +22,14 @@ namespace EtherChain.Services.Sync
             _lastSyncedBlock = string.IsNullOrEmpty(lastblock)? 0: BigInteger.Parse(lastblock);
             if (_lastSyncedBlock == 0)
             {
-                Web3 web3 = new Web3("https://mainnet.infura.io");
-                var blockCount = web3.Eth.Blocks.GetBlockNumber.SendRequestAsync().Result;
-                _lastSyncedBlock = blockCount.Value - 64;
+                if (AppSettings.StartBlock == 0)
+                {
+                    Web3 web3 = new Web3("https://mainnet.infura.io");
+                    var blockCount = web3.Eth.Blocks.GetBlockNumber.SendRequestAsync().Result;
+                    _lastSyncedBlock = blockCount.Value - 64;
+                }
+                else
+                    _lastSyncedBlock = AppSettings.StartBlock;
             }
 
             string dir = Directory.GetCurrentDirectory().Replace("EtherChain\\bin\\Debug\\netcoreapp2.2", "");
@@ -82,7 +89,37 @@ namespace EtherChain.Services.Sync
                 c += 2;
             }
 
+            // Update last synced block
+            _lastSyncedBlock = toBlock;
+            _db.Put("lastblock", _lastSyncedBlock.ToString());
+
             Console.WriteLine($"Done getting transactions from block {fromBlock} to {toBlock}");
+        }
+
+        public async Task AutoSync()
+        {
+            Web3 web3 = new Web3("https://mainnet.infura.io");
+            while (!StopAutoSync)
+            {
+                // Get the latest block count.
+                var blockCount = await web3.Eth.Blocks.GetBlockNumber.SendRequestAsync();
+                if (_lastSyncedBlock == blockCount.Value)
+                {
+                    System.Threading.Thread.Sleep(10000);
+                    continue;
+                }
+
+                // apply the block chunks
+                BigInteger fromBlock = _lastSyncedBlock + 1;
+                BigInteger toBlock = blockCount.Value;
+                if (toBlock - fromBlock > AppSettings.BlockChunk)
+                {
+                    toBlock = fromBlock + AppSettings.BlockChunk;
+                }
+
+                Sync(fromBlock, toBlock);
+            }
+            Console.WriteLine("AutoSync stopped.");
         }
     }
 }
