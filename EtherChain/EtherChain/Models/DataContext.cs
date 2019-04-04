@@ -62,6 +62,7 @@ namespace EtherChain.Models
             Address from = GetAddress(transaction.FromAddress);
             from.Balance -= transaction.Amount + transaction.Gas * transaction.GasPrice;
             from.TrKeys.Add(_lastTxId);
+            from.Nonce = transaction.Nonce;
             PutAddress(from, transaction.FromAddress);
 
             if (!string.IsNullOrEmpty(transaction.ToAddress))

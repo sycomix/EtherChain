@@ -13,5 +13,8 @@ namespace EtherChain.Models
 
         [Index(1)]
         public virtual IList<long> TrKeys { get; set; }
+
+        [Index(2)]
+        public virtual BigInteger Nonce { get; set; }
     }
 }
