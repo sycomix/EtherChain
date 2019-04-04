@@ -3,22 +3,36 @@ using System.IO;
 using System.Numerics;
 using EtherChain.Models;
 using EtherChain.Services.Sync;
+using Microsoft.AspNetCore;
+using Microsoft.AspNetCore.Hosting;
 using ZeroFormatter.Formatters;
 
 namespace EtherChain
 {
     class Program
     {
+        public static DataContext db = new DataContext();
+
         static void Main(string[] args)
         {
             // Add big integer formatter
             ZeroFormatter.Formatters.Formatter<DefaultResolver, BigInteger>.Register(new BigIntegerFormatter<DefaultResolver>());
 
-            DataContext db = new DataContext();
             EtherSync sync = new EtherSync(db);
-            sync.Sync(5000000, 5000100);
+            var autoSync = sync.AutoSync();
 
-            Console.ReadLine();
+            // Run the web server
+            CreateWebHostBuilder(args).Build().Run();
+
+            // Stop the syncing
+            Console.WriteLine("Shutdown the sync.");
+            sync.StopAutoSync = true;
+            autoSync.Wait();            
         }
+
+        public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
+            WebHost.CreateDefaultBuilder(args)
+                .UseStartup<Startup>();
+
     }
 }

@@ -32,8 +32,10 @@ namespace EtherChain.Services.Sync
                     _lastSyncedBlock = AppSettings.StartBlock;
             }
 
-            string dir = Directory.GetCurrentDirectory().Replace("EtherChain\\bin\\Debug\\netcoreapp2.2", "");
-            dir += "ethereumetl";
+            Console.WriteLine(Directory.GetCurrentDirectory());
+            string dir = Directory.GetCurrentDirectory();
+            dir = dir.Substring(0, dir.IndexOf("EtherChain") + 10);
+            dir += "\\ethereumetl";
             Console.WriteLine("ethereumetl directory = " + dir);
         }
 
@@ -45,16 +47,24 @@ namespace EtherChain.Services.Sync
             System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
             startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
             startInfo.FileName = "cmd.exe";
-            string dir = Directory.GetCurrentDirectory().Replace("EtherChain\\bin\\Debug\\netcoreapp2.2", "");
-            dir += "ethereumetl";
+            string dir = Directory.GetCurrentDirectory();
+            dir = dir.Substring(0, dir.IndexOf("EtherChain") + 10);
+            dir += "\\ethereumetl";
             startInfo.WorkingDirectory = dir;
             startInfo.Arguments = $"/C ethereumetl.exe export_blocks_and_transactions --start-block {fromBlock} --end-block {toBlock} --provider-uri https://mainnet.infura.io --transactions-output tx.csv";
             process.StartInfo = startInfo;
             process.Start();
             process.WaitForExit();
 
+            if (!File.Exists(dir + "\\tx.csv"))
+            {
+                Console.WriteLine("ERROR: tx.csv file not created.");
+                return;
+            }
+
             // Open the tx.csv file and extract it.
             var lines = File.ReadAllLines(dir + "\\tx.csv");
+            File.Delete(dir + "\\tx.csv");
             int c = 2;
             while (c < lines.Length)
             {

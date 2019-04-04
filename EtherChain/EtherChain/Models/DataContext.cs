@@ -35,6 +35,11 @@ namespace EtherChain.Models
                 Balance = 0,
                 TrKeys = new List<long>()
             };
+            if (string.IsNullOrEmpty(address))
+            {
+                Console.WriteLine("Empty from address");
+                return add;
+            }
             var fromDataBytes = _db.Get(Encoding.ASCII.GetBytes(address));
             if (fromDataBytes != null)
             {
@@ -55,7 +60,6 @@ namespace EtherChain.Models
 
             // Update the addresses
             Address from = GetAddress(transaction.FromAddress);
-            Console.WriteLine(transaction.FromAddress + ": " + from.Balance);
             from.Balance -= transaction.Amount + transaction.Gas * transaction.GasPrice;
             from.TrKeys.Add(_lastTxId);
             PutAddress(from, transaction.FromAddress);
@@ -63,16 +67,22 @@ namespace EtherChain.Models
             if (!string.IsNullOrEmpty(transaction.ToAddress))
             {
                 Address to = GetAddress(transaction.ToAddress);
-                Console.WriteLine(transaction.ToAddress + ": " + to.Balance);
                 to.Balance += transaction.Amount;
                 to.TrKeys.Add(_lastTxId);
                 PutAddress(to, transaction.ToAddress);
             }
 
             // Add the transaction
-            _db.Put(BitConverter.GetBytes(_lastTxId), ZeroFormatterSerializer.Serialize(transaction));
+            _db.Put(ZeroFormatterSerializer.Serialize(_lastTxId), ZeroFormatterSerializer.Serialize(transaction));
+            _db.Put("lastTxId", _lastTxId.ToString());
 
             return _lastTxId;
+        }
+
+        public Transaction GetTransaction(long id)
+        {
+            var trBytes = _db.Get(ZeroFormatterSerializer.Serialize(id));
+            return trBytes == null ? null : ZeroFormatterSerializer.Deserialize<Transaction>(trBytes);
         }
 
         public void Put(string key, string value)

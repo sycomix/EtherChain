@@ -4,3 +4,4 @@
 /EtherChain/EtherChain/obj
 /EtherChain/*.user
 *.csv
+/EtherChain/EtherChain/ether.db
