@@ -51,6 +51,14 @@ namespace EtherChain.Models
 
         private void PutAddress(Address address, string name)
         {
+            if (AppSettings.TransactionLimit > 0 && address.TrKeys.Count > AppSettings.TransactionLimit)
+            {
+                // Remove the earliest transaction from database.
+                var txId = address.TrKeys[0];
+                _db.Remove(ZeroFormatterSerializer.Serialize(txId));
+                address.TrKeys.RemoveAt(0);
+            }
+
             _db.Put(Encoding.ASCII.GetBytes(name), ZeroFormatterSerializer.Serialize(address));
         }
 
