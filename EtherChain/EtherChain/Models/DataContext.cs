@@ -64,7 +64,7 @@ namespace EtherChain.Models
             {
                 Address to = GetAddress(transaction.ToAddress);
                 Console.WriteLine(transaction.ToAddress + ": " + to.Balance);
-                to.Balance = transaction.Amount;
+                to.Balance += transaction.Amount;
                 to.TrKeys.Add(_lastTxId);
                 PutAddress(to, transaction.ToAddress);
             }

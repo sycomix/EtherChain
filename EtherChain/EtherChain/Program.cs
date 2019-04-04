@@ -16,7 +16,7 @@ namespace EtherChain
 
             DataContext db = new DataContext();
             EtherSync sync = new EtherSync(db);
-            sync.Sync(500000, 500100);
+            sync.Sync(5000000, 5000100);
 
             Console.ReadLine();
         }

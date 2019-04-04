@@ -6,6 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.App" Version="2.2.0" />
+    <PackageReference Include="Nethereum.Web3" Version="3.1.2" />
     <PackageReference Include="RocksDbNative" Version="5.17.2" />
     <PackageReference Include="RocksDbSharp" Version="5.17.2" />
     <PackageReference Include="ZeroFormatter" Version="1.6.4" />

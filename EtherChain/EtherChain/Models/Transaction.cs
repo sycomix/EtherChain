@@ -27,5 +27,8 @@ namespace EtherChain.Models
 
         [Index(6)]
         public virtual string BlockHash { get; set; }
+
+        [Index(7)]
+        public virtual BigInteger Nonce { get; set; }
     }
 }

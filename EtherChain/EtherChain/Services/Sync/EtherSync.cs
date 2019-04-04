@@ -4,6 +4,7 @@ using System.IO;
 using System.Numerics;
 using System.Threading;
 using EtherChain.Models;
+using Nethereum.Web3;
 
 namespace EtherChain.Services.Sync
 {
@@ -17,6 +18,12 @@ namespace EtherChain.Services.Sync
             _db = db;
             var lastblock = _db.Get("lastblock");
             _lastSyncedBlock = string.IsNullOrEmpty(lastblock)? 0: BigInteger.Parse(lastblock);
+            if (_lastSyncedBlock == 0)
+            {
+                Web3 web3 = new Web3("https://mainnet.infura.io");
+                var blockCount = web3.Eth.Blocks.GetBlockNumber.SendRequestAsync().Result;
+                _lastSyncedBlock = blockCount.Value - 64;
+            }
 
             string dir = Directory.GetCurrentDirectory().Replace("EtherChain\\bin\\Debug\\netcoreapp2.2", "");
             dir += "ethereumetl";
@@ -33,7 +40,6 @@ namespace EtherChain.Services.Sync
             startInfo.FileName = "cmd.exe";
             string dir = Directory.GetCurrentDirectory().Replace("EtherChain\\bin\\Debug\\netcoreapp2.2", "");
             dir += "ethereumetl";
-            Console.WriteLine(dir);
             startInfo.WorkingDirectory = dir;
             startInfo.Arguments = $"/C ethereumetl.exe export_blocks_and_transactions --start-block {fromBlock} --end-block {toBlock} --provider-uri https://mainnet.infura.io --transactions-output tx.csv";
             process.StartInfo = startInfo;
@@ -67,16 +73,9 @@ namespace EtherChain.Services.Sync
                     Gas = BigInteger.Parse(data[8]),
                     GasPrice = BigInteger.Parse(data[9]),
                     Hash = data[0],
-                    ToAddress = data[6]
+                    ToAddress = data[6],
+                    Nonce = BigInteger.Parse(data[1])
                 };
-
-                foreach (PropertyDescriptor descriptor in TypeDescriptor.GetProperties(tr))
-                {
-                    string name = descriptor.Name;
-                    object value = descriptor.GetValue(tr);
-                    Console.WriteLine("{0}={1}", name, value);
-                }
-
 
                 _db.AddTransaction(tr);
 
