@@ -122,9 +122,16 @@ namespace EtherChain.Services.Sync
                 // apply the block chunks
                 BigInteger fromBlock = _lastSyncedBlock + 1;
                 BigInteger toBlock = blockCount.Value;
-                if (toBlock - fromBlock > AppSettings.BlockChunk)
+                if (fromBlock >= 2000000 && fromBlock <= 4000000)
                 {
-                    toBlock = fromBlock + AppSettings.BlockChunk;
+                    toBlock = fromBlock; // The blocks from 2000000 to 4000000 is very big so we get blocks one by one.
+                }
+                else
+                {
+                    if (toBlock - fromBlock > AppSettings.BlockChunk)
+                    {
+                        toBlock = fromBlock + AppSettings.BlockChunk;
+                    }
                 }
 
                 Sync(fromBlock, toBlock);
