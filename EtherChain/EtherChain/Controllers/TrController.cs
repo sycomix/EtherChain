@@ -8,10 +8,10 @@ namespace EtherChain.Controllers
     public class TrController: ControllerBase
     {
         // GET
-        [HttpGet("{id}")]
-        public ActionResult<Transaction> Get(long id)
+        [HttpGet("{coin}/{id}")]
+        public ActionResult<Transaction> Get(long id, string coin)
         {
-            return Program.db.GetTransaction(id);
+            return Program.db.GetTransaction(id, coin);
         }
 
     }

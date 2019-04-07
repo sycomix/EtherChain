@@ -18,7 +18,7 @@ namespace EtherChain.Services.Sync
         public EtherSync(DataContext db)
         {
             _db = db;
-            var lastblock = _db.Get("lastblock");
+            var lastblock = _db.Get("lastblock", "ETH");
             _lastSyncedBlock = string.IsNullOrEmpty(lastblock)? 0: BigInteger.Parse(lastblock);
             if (_lastSyncedBlock == 0)
             {
@@ -94,14 +94,14 @@ namespace EtherChain.Services.Sync
                     Nonce = BigInteger.Parse(data[1])
                 };
 
-                _db.AddTransaction(tr);
+                _db.AddTransaction(tr, "ETH");
 
                 c += 2;
             }
 
             // Update last synced block
             _lastSyncedBlock = toBlock;
-            _db.Put("lastblock", _lastSyncedBlock.ToString());
+            _db.Put("lastblock", _lastSyncedBlock.ToString(), "ETH");
 
             Console.WriteLine($"Done getting transactions from block {fromBlock} to {toBlock}");
         }

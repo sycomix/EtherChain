@@ -12,9 +12,9 @@ namespace EtherChain.Models
         public virtual BigInteger Balance { get; set; }
 
         [Index(1)]
-        public virtual IList<long> TrKeys { get; set; }
+        public virtual BigInteger Nonce { get; set; }
 
         [Index(2)]
-        public virtual BigInteger Nonce { get; set; }
+        public virtual IList<long> TrKeys { get; set; }
     }
 }

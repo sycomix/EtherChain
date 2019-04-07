@@ -8,10 +8,10 @@ namespace EtherChain.Controllers
     public class AddressController : ControllerBase
     {
         // GET
-        [HttpGet("{id}")]
-        public ActionResult<Address> Get(string id)
+        [HttpGet("{add}/{id}")]
+        public ActionResult<Address> Get(string id, string add)
         {
-            return Program.db.GetAddress(id);
+            return Program.db.GetAddress(id, add);
         }
     }
 }

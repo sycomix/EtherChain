@@ -8,14 +8,16 @@ using ZeroFormatter;
 
 namespace EtherChain.Models
 {
-    public class DataContext
+    public class DataContext: IDisposable
     {
         private readonly RocksDb _db;
-        private long _lastTxId;
+        private readonly Dictionary<string, long> _lastTxIdDictionary;
         private readonly Dictionary<string, ColumnFamilyHandle> _columnFamiliesDictionary;
 
         public DataContext(string path = "ether.db")
         {           
+            _lastTxIdDictionary = new Dictionary<string, long>();
+
             var options = new DbOptions()
                 .SetCreateIfMissing(true)
                 .SetCreateMissingColumnFamilies(true);
@@ -42,14 +44,33 @@ namespace EtherChain.Models
                 // Load column families to the dictionary
                 _columnFamiliesDictionary = new Dictionary<string, ColumnFamilyHandle>();
                 if (cols != null)
+                {
+                    foreach (var col in cols)
+                        _columnFamiliesDictionary.Add(col, _db.GetColumnFamily(col));
                     foreach (var col in cols)
                     {
-                        _columnFamiliesDictionary.Add(col, _db.GetColumnFamily(col));
+                        // Load latest transaction Ids
+                        if (!col.Contains(':') && col != "default")
+                        {
+                            var lastTxIdstr = _db.Get("lastTxId", GetColFamily(col + ":lastid"));
+                            _lastTxIdDictionary.Add(col,
+                                string.IsNullOrEmpty(lastTxIdstr) ? 0 : long.Parse(lastTxIdstr));
+                        }
                     }
-
-                var lastTxIdstr = _db.Get("lastTxId", GetColFamily("ETH:tx"));
-                _lastTxId = string.IsNullOrEmpty(lastTxIdstr) ? 0 : long.Parse(lastTxIdstr);
+                }
             }
+        }
+
+
+        public void Dispose()
+        {
+            // Save the last ids to database
+            foreach (var id in _lastTxIdDictionary)
+            {
+                _db.Put("lastTxId", id.Value.ToString(), GetColFamily(id.Key + ":lastid"));
+            }
+
+            _db?.Dispose();
         }
 
         private ColumnFamilyHandle GetColFamily(string name)
@@ -63,12 +84,20 @@ namespace EtherChain.Models
             return cf;
         }
 
+        private long GetLastTxId(string name)
+        {
+            if (!_lastTxIdDictionary.ContainsKey(name))
+                _lastTxIdDictionary.Add(name, 0);
+
+            return ++_lastTxIdDictionary[name];
+        }
+
         public void CreateCheckPoint()
         {
             _db.Checkpoint();
         }
 
-        public Address GetAddress(string address)
+        public Address GetAddress(string address, string coinName)
         {
             // Update the balances
             Address add = new Address
@@ -81,7 +110,7 @@ namespace EtherChain.Models
                 Console.WriteLine("Empty from address");
                 return add;
             }
-            var fromDataBytes = _db.Get(Encoding.ASCII.GetBytes(address), GetColFamily("ETH"));
+            var fromDataBytes = _db.Get(Encoding.ASCII.GetBytes(address), GetColFamily(coinName));
             if (fromDataBytes != null)
             {
                 add = ZeroFormatterSerializer.Deserialize<Address>(fromDataBytes);
@@ -90,61 +119,60 @@ namespace EtherChain.Models
             return add;
         }
 
-        private void PutAddress(Address address, string name)
+        private void PutAddress(Address address, string name, string coinName)
         {
             if (AppSettings.TransactionLimit > 0 && address.TrKeys.Count > AppSettings.TransactionLimit)
             {
                 // Remove the earliest transaction from database.
                 var txId = address.TrKeys[0];
-                _db.Remove(ZeroFormatterSerializer.Serialize(txId), GetColFamily("ETH:tx"));
+                _db.Remove(ZeroFormatterSerializer.Serialize(txId), GetColFamily(coinName + ":tx"));
                 address.TrKeys.RemoveAt(0);
             }
 
             _db.Put(Encoding.ASCII.GetBytes(name), ZeroFormatterSerializer.Serialize(address), 
-                GetColFamily("ETH"));
+                GetColFamily(coinName));
         }
 
-        public long AddTransaction(Transaction transaction)
+        public long AddTransaction(Transaction transaction, string coinName)
         {
-            _lastTxId++;
+            var lastTxId = GetLastTxId(coinName);
 
             // Update the addresses
-            Address from = GetAddress(transaction.FromAddress);
+            Address from = GetAddress(transaction.FromAddress, coinName);
             from.Balance -= transaction.Amount + transaction.Gas * transaction.GasPrice;
-            from.TrKeys.Add(_lastTxId);
+            from.TrKeys.Add(lastTxId);
             from.Nonce = transaction.Nonce;
-            PutAddress(from, transaction.FromAddress);
+            PutAddress(from, transaction.FromAddress, coinName);
 
             if (!string.IsNullOrEmpty(transaction.ToAddress))
             {
-                Address to = GetAddress(transaction.ToAddress);
+                Address to = GetAddress(transaction.ToAddress, coinName);
                 to.Balance += transaction.Amount;
-                to.TrKeys.Add(_lastTxId);
-                PutAddress(to, transaction.ToAddress);
+                to.TrKeys.Add(lastTxId);
+                PutAddress(to, transaction.ToAddress, coinName);
             }
 
             // Add the transaction
-            _db.Put(ZeroFormatterSerializer.Serialize(_lastTxId), 
-                ZeroFormatterSerializer.Serialize(transaction), GetColFamily("ETH:tx"));
-            _db.Put("lastTxId", _lastTxId.ToString(), GetColFamily("ETH:tx"));
+            _db.Put(ZeroFormatterSerializer.Serialize(lastTxId), 
+                ZeroFormatterSerializer.Serialize(transaction), GetColFamily(coinName + ":tx"));
 
-            return _lastTxId;
+            return lastTxId;
         }
 
-        public Transaction GetTransaction(long id)
+        public Transaction GetTransaction(long id, string coinName)
         {
-            var trBytes = _db.Get(ZeroFormatterSerializer.Serialize(id), GetColFamily("ETH:tx"));
+            var trBytes = _db.Get(ZeroFormatterSerializer.Serialize(id), GetColFamily(coinName + ":tx"));
             return trBytes == null ? null : ZeroFormatterSerializer.Deserialize<Transaction>(trBytes);
         }
 
-        public void Put(string key, string value)
+        public void Put(string key, string value, string coinName)
         {
-            _db.Put(key, value);
+            _db.Put(key, value, GetColFamily(coinName));
         }
 
-        public string Get(string key)
+        public string Get(string key, string coinName)
         {
-            return _db.Get(key);
+            return _db.Get(key, GetColFamily(coinName));
         }
     }
 }

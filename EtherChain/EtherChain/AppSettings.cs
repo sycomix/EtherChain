@@ -10,5 +10,8 @@ namespace EtherChain
         public static int BlockChunk = 10000; // How many block to get for processing each time.
         public static int TransactionLimit = 100; // The maximum latest transaction that we will hold for each account
                                                  // 0 = unlimited
+        public static bool SyncEthereum = true;
+        public static bool SyncTokens = true;
+        public static bool SyncEthereumClassic = true;
     }
 }

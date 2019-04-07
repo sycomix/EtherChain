@@ -11,13 +11,14 @@ namespace EtherChain
 {
     class Program
     {
-        public static DataContext db = new DataContext();
+        public static DataContext db;
 
         static void Main(string[] args)
         {
             // Add big integer formatter
             ZeroFormatter.Formatters.Formatter<DefaultResolver, BigInteger>.Register(new BigIntegerFormatter<DefaultResolver>());
 
+            db = new DataContext();
             EtherSync sync = new EtherSync(db);
             var autoSync = sync.AutoSync();
 
