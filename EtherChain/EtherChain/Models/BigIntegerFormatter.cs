@@ -2,6 +2,7 @@
 using System.Numerics;
 using ZeroFormatter;
 using ZeroFormatter.Formatters;
+using ZeroFormatter.Internal;
 
 namespace EtherChain.Models
 {
@@ -16,14 +17,19 @@ namespace EtherChain.Models
 
         public override int Serialize(ref byte[] bytes, int offset, BigInteger value)
         {
-            // Formatter<T> can get child serializer
-            return Formatter<TTypeResolver, string>.Default.Serialize(ref bytes, offset, value.ToString());
+            var startOffset = offset;
+            var valueBytes = value.ToByteArray();
+            offset += BinaryUtil.WriteByte(ref bytes, offset, (byte)valueBytes.Length);
+            offset += BinaryUtil.WriteBytes(ref bytes, offset, valueBytes);
+            return offset - startOffset;
         }
 
         public override BigInteger Deserialize(ref byte[] bytes, int offset, DirtyTracker tracker, out int byteSize)
         {
-            var uriString = Formatter<TTypeResolver, string>.Default.Deserialize(ref bytes, offset, tracker, out byteSize);
-            return (uriString == null) ? 0 : BigInteger.Parse(uriString);
+            var bytesCount = BinaryUtil.ReadByte(ref bytes, offset);
+            var valueBytes = BinaryUtil.ReadBytes(ref bytes, offset + 1, bytesCount);
+            byteSize = 4 + bytesCount;
+            return new BigInteger(valueBytes);
         }
     }
 }
