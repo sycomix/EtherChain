@@ -28,7 +28,7 @@ namespace EtherChain.Models
         {
             var bytesCount = BinaryUtil.ReadByte(ref bytes, offset);
             var valueBytes = BinaryUtil.ReadBytes(ref bytes, offset + 1, bytesCount);
-            byteSize = 4 + bytesCount;
+            byteSize = 1 + bytesCount;
             return new BigInteger(valueBytes);
         }
     }
