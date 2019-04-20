@@ -15,7 +15,7 @@ namespace EtherChain
         static void Main(string[] args)
         {
             db = new DataContext();
-            EtherSync sync = new EtherSync(db);
+            EtherSync sync = new EtherSync(db, "ETH");
             var autoSync = sync.AutoSync();
 
             // Run the web server

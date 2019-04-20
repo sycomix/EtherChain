@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using RocksDbSharp;
 using MessagePack;
+using System.Numerics;
 
 namespace EtherChain.Models
 {
@@ -133,7 +132,8 @@ namespace EtherChain.Models
                 GetColFamily(coinName));
         }
 
-        public long AddTransaction(Transaction transaction, string coinName)
+        public long AddTransaction(Transaction transaction, string coinName, 
+            ref Block block)
         {
             var lastTxId = GetLastTxId(coinName);
 
@@ -156,13 +156,69 @@ namespace EtherChain.Models
             _db.Put(LZ4MessagePackSerializer.Serialize(lastTxId), 
                 LZ4MessagePackSerializer.Serialize(transaction), GetColFamily(coinName + ":tx"));
 
+            // Add transaction to the block
+            if (!block.TransactionIds.ContainsKey(coinName))
+                block.TransactionIds.Add(coinName, new List<long>());
+            block.TransactionIds[coinName].Add(lastTxId);
+
             return lastTxId;
+        }
+
+        public void AddBlock(BigInteger num, Block block, string BlockChain)
+        {
+            _db.Put(LZ4MessagePackSerializer.Serialize(num), LZ4MessagePackSerializer.Serialize(block),
+                GetColFamily(BlockChain));
+            _db.Remove(LZ4MessagePackSerializer.Serialize(num - 11), GetColFamily(BlockChain));
+        }
+
+        public Block GetBlock(BigInteger number, string BlockChain)
+        {
+            var blockBytes = _db.Get(LZ4MessagePackSerializer.Serialize(number), GetColFamily(BlockChain));
+            return blockBytes == null ? null : LZ4MessagePackSerializer.Deserialize<Block>(blockBytes);
         }
 
         public Transaction GetTransaction(long id, string coinName)
         {
             var trBytes = _db.Get(LZ4MessagePackSerializer.Serialize(id), GetColFamily(coinName + ":tx"));
             return trBytes == null ? null : LZ4MessagePackSerializer.Deserialize<Transaction>(trBytes);
+        }
+
+        private void RollBlockTransaction(long txId, string coinName)
+        {
+            var transaction = GetTransaction(txId, coinName);
+
+            // Update the addresses
+            Address from = GetAddress(transaction.FromAddress, coinName);
+            from.Balance += transaction.Amount;
+            from.TrKeys.Remove(txId);
+            PutAddress(from, transaction.FromAddress, coinName);
+
+            if (!string.IsNullOrEmpty(transaction.ToAddress))
+            {
+                Address to = GetAddress(transaction.ToAddress, coinName);
+                to.Balance -= transaction.Amount;
+                to.TrKeys.Remove(txId);
+                PutAddress(to, transaction.ToAddress, coinName);
+            }
+
+            // Remove the transaction
+            _db.Remove(LZ4MessagePackSerializer.Serialize(txId), GetColFamily(coinName + ":tx"));
+
+        }
+
+        public void RollBackBlock(BigInteger number, string blockChain)
+        {
+            var block = GetBlock(number, blockChain);
+            foreach (var trs in block.TransactionIds)
+            {
+                foreach (var trId in trs.Value)
+                {
+                    RollBlockTransaction(trId, trs.Key);
+                }
+            }
+
+            // Delete the block
+            _db.Remove(LZ4MessagePackSerializer.Serialize(number));
         }
 
         public void Put(string key, string value, string coinName)

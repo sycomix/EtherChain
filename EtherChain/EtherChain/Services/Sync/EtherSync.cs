@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
 using EtherChain.Models;
+using Nethereum.Hex.HexTypes;
 using Nethereum.Web3;
 
 namespace EtherChain.Services.Sync
@@ -13,12 +14,14 @@ namespace EtherChain.Services.Sync
     {
         private DataContext _db;
         private BigInteger _lastSyncedBlock;
+        private string _blockChain;
         public bool StopAutoSync = false;
 
-        public EtherSync(DataContext db)
+        public EtherSync(DataContext db, string BlockChain)
         {
             _db = db;
-            var lastblock = _db.Get("lastblock", "ETH");
+            _blockChain = BlockChain;
+            var lastblock = _db.Get("lastblock", _blockChain);
             _lastSyncedBlock = string.IsNullOrEmpty(lastblock)? 0: BigInteger.Parse(lastblock);
             if (_lastSyncedBlock == 0)
             {
@@ -67,6 +70,8 @@ namespace EtherChain.Services.Sync
             var lines = File.ReadAllLines(dir + "\\tx.csv");
             File.Delete(dir + "\\tx.csv");
             int c = 2;
+            Block block = new Block();
+            BigInteger blockNo = 0;
             while (c < lines.Length)
             {
                 var data = lines[c].Split(',');
@@ -86,7 +91,7 @@ namespace EtherChain.Services.Sync
                 Transaction tr = new Transaction
                 {
                     Amount = BigInteger.Parse(data[7]),
-                    Block = long.Parse(data[3]),
+                    Block = BigInteger.Parse(data[3]),
                     FromAddress = data[5],
                     Gas = BigInteger.Parse(data[8]),
                     GasPrice = BigInteger.Parse(data[9]),
@@ -95,16 +100,66 @@ namespace EtherChain.Services.Sync
                     Nonce = BigInteger.Parse(data[1])
                 };
 
-                _db.AddTransaction(tr, "ETH");
+                // Check if we need to create a new block
+                if (string.IsNullOrEmpty(block.Hash))
+                {
+                    block.Hash = data[2];
+                    blockNo = tr.Block;
+                }
+                else if (blockNo != tr.Block)
+                {
+                    _db.AddBlock(blockNo, block, _blockChain);
+                    block = new Block();
+                    blockNo = tr.Block;
+                }
+
+                _db.AddTransaction(tr, _blockChain, ref block);
 
                 c += 2;
             }
+            _db.AddBlock(blockNo, block, _blockChain);
 
             // Update last synced block
             _lastSyncedBlock = toBlock;
-            _db.Put("lastblock", _lastSyncedBlock.ToString(), "ETH");
+            _db.Put("lastblock", _lastSyncedBlock.ToString(), _blockChain);
 
             Console.WriteLine($"Done getting transactions from block {fromBlock} to {toBlock}");
+        }
+
+        private async Task CheckBlocks()
+        {
+            BigInteger startBlock = _lastSyncedBlock - 10;
+            if (startBlock < 1)
+                startBlock = 1;
+            BigInteger tempLastBlock = _lastSyncedBlock;
+            for (BigInteger i = startBlock; i <= _lastSyncedBlock; i++)
+            {
+                // Check for hash
+                var block = _db.GetBlock(i, _blockChain);
+                if (block == null)
+                    continue;
+
+                string hash;
+                try
+                {
+                    Web3 web3 = new Web3("https://mainnet.infura.io");
+                    hash = (await web3.Eth.Blocks.GetBlockWithTransactionsHashesByNumber.SendRequestAsync(
+                        new HexBigInteger(i))).BlockHash;
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    return;
+                }
+                if (block.Hash == hash.ToString())
+                    continue;
+
+                // Oh shit block chain fork we have to rollback database.
+                _db.RollBackBlock(i, _blockChain);
+                if (tempLastBlock == _lastSyncedBlock)
+                    tempLastBlock = i - 1;
+            }
+            _lastSyncedBlock = tempLastBlock;
         }
 
         public async Task AutoSync()
@@ -119,6 +174,8 @@ namespace EtherChain.Services.Sync
                     System.Threading.Thread.Sleep(10000);
                     continue;
                 }
+
+                await CheckBlocks();
 
                 // apply the block chunks
                 BigInteger fromBlock = _lastSyncedBlock + 1;

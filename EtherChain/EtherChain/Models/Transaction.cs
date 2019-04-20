@@ -26,7 +26,7 @@ namespace EtherChain.Models
         public virtual BigInteger GasPrice { get; set; }
 
         [Key(6)]
-        public virtual long Block { get; set; }
+        public virtual BigInteger Block { get; set; }
 
         [Key(7)]
         public virtual BigInteger Nonce { get; set; }
