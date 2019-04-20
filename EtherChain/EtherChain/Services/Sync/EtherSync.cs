@@ -155,6 +155,7 @@ namespace EtherChain.Services.Sync
                     continue;
 
                 // Oh shit block chain fork we have to rollback database.
+                Console.WriteLine($"Block roll back from {i}");
                 _db.RollBackBlock(i, _blockChain);
                 if (tempLastBlock == _lastSyncedBlock)
                     tempLastBlock = i - 1;
