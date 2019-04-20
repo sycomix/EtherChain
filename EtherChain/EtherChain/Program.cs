@@ -5,7 +5,6 @@ using EtherChain.Models;
 using EtherChain.Services.Sync;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
-using ZeroFormatter.Formatters;
 
 namespace EtherChain
 {
@@ -15,9 +14,6 @@ namespace EtherChain
 
         static void Main(string[] args)
         {
-            // Add big integer formatter
-            ZeroFormatter.Formatters.Formatter<DefaultResolver, BigInteger>.Register(new BigIntegerFormatter<DefaultResolver>());
-
             db = new DataContext();
             EtherSync sync = new EtherSync(db);
             var autoSync = sync.AutoSync();

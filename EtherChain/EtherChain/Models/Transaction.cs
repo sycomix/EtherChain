@@ -1,34 +1,34 @@
 ﻿using System;
 using System.Numerics;
-using ZeroFormatter;
+using MessagePack;
 
 namespace EtherChain.Models
 {
-    [ZeroFormattable]
+    [MessagePackObject]
     public class Transaction
     {
-        [Index(0)]
+        [Key(0)]
         public virtual string Hash { get; set; } // Transaction Id
 
-        [Index(1)]
+        [Key(1)]
         public virtual string FromAddress { get; set; }
 
-        [Index(2)]
+        [Key(2)]
         public virtual string ToAddress { get; set; }
 
-        [Index(3)]
+        [Key(3)]
         public virtual BigInteger Amount { get; set; }
 
-        [Index(4)]
+        [Key(4)]
         public virtual BigInteger Gas { get; set; }
 
-        [Index(5)]
+        [Key(5)]
         public virtual BigInteger GasPrice { get; set; }
 
-        [Index(6)]
-        public virtual string BlockHash { get; set; }
+        [Key(6)]
+        public virtual long Block { get; set; }
 
-        [Index(7)]
+        [Key(7)]
         public virtual BigInteger Nonce { get; set; }
     }
 }

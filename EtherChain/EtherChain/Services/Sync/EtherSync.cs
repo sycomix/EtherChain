@@ -48,7 +48,7 @@ namespace EtherChain.Services.Sync
             startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
             startInfo.FileName = "cmd.exe";
             string dir = Directory.GetCurrentDirectory();
-            dir = dir.Substring(0, dir.IndexOf("EtherChain") + 10);
+            dir = dir.Substring(0, dir.IndexOf("EtherChain") + 21);
             dir += "\\ethereumetl";
             startInfo.WorkingDirectory = dir;
             startInfo.Arguments = $"/C ethereumetl.exe export_blocks_and_transactions --start-block {fromBlock} --end-block {toBlock} --provider-uri https://mainnet.infura.io --transactions-output tx.csv";
@@ -59,6 +59,7 @@ namespace EtherChain.Services.Sync
             if (!File.Exists(dir + "\\tx.csv"))
             {
                 Console.WriteLine("ERROR: tx.csv file not created.");
+                Thread.Sleep(1000);
                 return;
             }
 
@@ -85,7 +86,7 @@ namespace EtherChain.Services.Sync
                 Transaction tr = new Transaction
                 {
                     Amount = BigInteger.Parse(data[7]),
-                    BlockHash = data[2],
+                    Block = long.Parse(data[3]),
                     FromAddress = data[5],
                     Gas = BigInteger.Parse(data[8]),
                     GasPrice = BigInteger.Parse(data[9]),

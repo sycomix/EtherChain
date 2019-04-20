@@ -4,7 +4,7 @@ using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using RocksDbSharp;
-using ZeroFormatter;
+using MessagePack;
 
 namespace EtherChain.Models
 {
@@ -113,7 +113,7 @@ namespace EtherChain.Models
             var fromDataBytes = _db.Get(Encoding.ASCII.GetBytes(address), GetColFamily(coinName));
             if (fromDataBytes != null)
             {
-                add = ZeroFormatterSerializer.Deserialize<Address>(fromDataBytes);
+                add = LZ4MessagePackSerializer.Deserialize<Address>(fromDataBytes);
             }
 
             return add;
@@ -125,11 +125,11 @@ namespace EtherChain.Models
             {
                 // Remove the earliest transaction from database.
                 var txId = address.TrKeys[0];
-                _db.Remove(ZeroFormatterSerializer.Serialize(txId), GetColFamily(coinName + ":tx"));
+                _db.Remove(LZ4MessagePackSerializer.Serialize(txId), GetColFamily(coinName + ":tx"));
                 address.TrKeys.RemoveAt(0);
             }
 
-            _db.Put(Encoding.ASCII.GetBytes(name), ZeroFormatterSerializer.Serialize(address), 
+            _db.Put(Encoding.ASCII.GetBytes(name), LZ4MessagePackSerializer.Serialize(address), 
                 GetColFamily(coinName));
         }
 
@@ -153,16 +153,16 @@ namespace EtherChain.Models
             }
 
             // Add the transaction
-            _db.Put(ZeroFormatterSerializer.Serialize(lastTxId), 
-                ZeroFormatterSerializer.Serialize(transaction), GetColFamily(coinName + ":tx"));
+            _db.Put(LZ4MessagePackSerializer.Serialize(lastTxId), 
+                LZ4MessagePackSerializer.Serialize(transaction), GetColFamily(coinName + ":tx"));
 
             return lastTxId;
         }
 
         public Transaction GetTransaction(long id, string coinName)
         {
-            var trBytes = _db.Get(ZeroFormatterSerializer.Serialize(id), GetColFamily(coinName + ":tx"));
-            return trBytes == null ? null : ZeroFormatterSerializer.Deserialize<Transaction>(trBytes);
+            var trBytes = _db.Get(LZ4MessagePackSerializer.Serialize(id), GetColFamily(coinName + ":tx"));
+            return trBytes == null ? null : LZ4MessagePackSerializer.Deserialize<Transaction>(trBytes);
         }
 
         public void Put(string key, string value, string coinName)

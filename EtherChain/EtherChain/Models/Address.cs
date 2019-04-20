@@ -1,20 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
-using ZeroFormatter;
+using MessagePack;
 
 namespace EtherChain.Models
 {
-    [ZeroFormattable]
+    [MessagePackObject]
     public class Address
     {
-        [Index(0)]
+        [Key(0)]
         public virtual BigInteger Balance { get; set; }
 
-        [Index(1)]
+        [Key(1)]
         public virtual BigInteger Nonce { get; set; }
 
-        [Index(2)]
+        [Key(2)]
         public virtual IList<long> TrKeys { get; set; }
     }
 }
