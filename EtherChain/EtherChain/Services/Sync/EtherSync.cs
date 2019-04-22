@@ -37,7 +37,7 @@ namespace EtherChain.Services.Sync
 
             Console.WriteLine(Directory.GetCurrentDirectory());
             string dir = Directory.GetCurrentDirectory();
-            dir = dir.Substring(0, dir.IndexOf("EtherChain") + 10);
+            dir = dir.Substring(0, dir.IndexOf("EtherChain") + 21);
             dir += "\\ethereumetl";
             Console.WriteLine("ethereumetl directory = " + dir);
         }
@@ -181,7 +181,7 @@ namespace EtherChain.Services.Sync
                 // apply the block chunks
                 BigInteger fromBlock = _lastSyncedBlock + 1;
                 BigInteger toBlock = blockCount.Value;
-                if (fromBlock >= 2000000 && fromBlock <= 4000000)
+                if (fromBlock >= 2000000 && fromBlock <= 4000000 && _blockChain == "ETH")
                 {
                     toBlock = fromBlock; // The blocks from 2000000 to 4000000 is very big so we get blocks one by one.
                 }
