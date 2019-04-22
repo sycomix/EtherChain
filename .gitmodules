@@ -1,0 +1,3 @@
+[submodule "deps/ethereum-etl"]
+	path = deps/ethereum-etl
+	url = https://github.com/kochol/ethereum-etl.git
