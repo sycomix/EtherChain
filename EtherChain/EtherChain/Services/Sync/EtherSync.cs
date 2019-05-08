@@ -45,7 +45,8 @@ namespace EtherChain.Services.Sync
 
             Console.WriteLine(Directory.GetCurrentDirectory());
             string dir = Directory.GetCurrentDirectory();
-            dir = dir.Substring(0, dir.IndexOf("EtherChain") + 10);
+            if (dir.IndexOf("EtherChain") > 0)
+                dir = dir.Substring(0, dir.IndexOf("EtherChain") + 10);
             dir += "\\deps\\ethereum-etl";
             Console.WriteLine("ethereumetl directory = " + dir);
         }
@@ -59,7 +60,8 @@ namespace EtherChain.Services.Sync
             startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
             startInfo.FileName = "cmd.exe";
             string dir = Directory.GetCurrentDirectory();
-            dir = dir.Substring(0, dir.IndexOf("EtherChain") + 10);
+            if (dir.IndexOf("EtherChain") > 0)
+                dir = dir.Substring(0, dir.IndexOf("EtherChain") + 10);
             dir += "\\deps\\ethereum-etl";
             startInfo.WorkingDirectory = dir;
             if (_blockChain == "ETH")
