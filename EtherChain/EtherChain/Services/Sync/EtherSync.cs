@@ -20,7 +20,7 @@ namespace EtherChain.Services.Sync
         private Web3 getWeb3()
         {
             if (_blockChain == "ETH" || _blockChain == "ERC20")
-                return new Web3("https://mainnet.infura.io");
+                return new Web3("https://rinkeby.infura.io/v3/c0dd8bd86ad74cb086080c399f006894");
             
             return new Web3("https://ethereumclassic.network");
         }
@@ -64,7 +64,7 @@ namespace EtherChain.Services.Sync
             startInfo.WorkingDirectory = dir;
             if (_blockChain == "ETH")
                 startInfo.Arguments =
-                    $"/C python ethereumetl.py export_blocks_and_transactions --start-block {fromBlock} --end-block {toBlock} --provider-uri https://mainnet.infura.io --transactions-output tx.csv";
+                    $"/C python ethereumetl.py export_blocks_and_transactions --start-block {fromBlock} --end-block {toBlock} --provider-uri https://rinkeby.infura.io/v3/c0dd8bd86ad74cb086080c399f006894 --transactions-output tx.csv";
             else if (_blockChain == "ERC20")
                 startInfo.Arguments =
                     $"/C python ethereumetl.py export_token_transfers --start-block {fromBlock} --end-block {toBlock} --provider-uri wss://mainnet.infura.io/ws --output erc20.csv -w 1";

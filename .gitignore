@@ -5,3 +5,5 @@
 /EtherChain/*.user
 *.csv
 /EtherChain/EtherChain/ether.db
+*.user
+/EtherChain/EtherChain/publish
