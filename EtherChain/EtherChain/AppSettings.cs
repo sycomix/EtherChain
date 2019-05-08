@@ -11,7 +11,7 @@ namespace EtherChain
         public static int TransactionLimit = 100; // The maximum latest transaction that we will hold for each account
                                                  // 0 = unlimited
         public static bool SyncEthereum = true;
-        public static bool SyncTokens = true;
+        public static bool SyncErc20 = true;
         public static bool SyncEthereumClassic = true;
     }
 }

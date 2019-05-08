@@ -9,12 +9,12 @@ namespace EtherChain.Models
     public class Address
     {
         [Key(0)]
-        public virtual BigInteger Balance { get; set; }
+        public BigInteger Balance { get; set; }
 
         [Key(1)]
-        public virtual BigInteger Nonce { get; set; }
+        public BigInteger Nonce { get; set; }
 
         [Key(2)]
-        public virtual IList<long> TrKeys { get; set; }
+        public List<long> TrKeys { get; set; }
     }
 }

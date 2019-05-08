@@ -164,6 +164,37 @@ namespace EtherChain.Models
             return lastTxId;
         }
 
+        public long AddTransaction(Erc20Transaction transaction, string coinName,
+            ref Block block)
+        {
+            var lastTxId = GetLastTxId(coinName);
+
+            // Update the addresses
+            Address from = GetAddress(transaction.FromAddress, coinName);
+            from.Balance -= transaction.Amount;
+            from.TrKeys.Add(lastTxId);
+            PutAddress(from, transaction.FromAddress, coinName);
+
+            if (!string.IsNullOrEmpty(transaction.ToAddress))
+            {
+                Address to = GetAddress(transaction.ToAddress, coinName);
+                to.Balance += transaction.Amount;
+                to.TrKeys.Add(lastTxId);
+                PutAddress(to, transaction.ToAddress, coinName);
+            }
+
+            // Add the transaction
+            _db.Put(LZ4MessagePackSerializer.Serialize(lastTxId),
+                LZ4MessagePackSerializer.Serialize(transaction), GetColFamily(coinName + ":tx"));
+
+            // Add transaction to the block
+            if (!block.TransactionIds.ContainsKey(coinName))
+                block.TransactionIds.Add(coinName, new List<long>());
+            block.TransactionIds[coinName].Add(lastTxId);
+
+            return lastTxId;
+        }
+
         public void AddBlock(BigInteger num, Block block, string BlockChain)
         {
             _db.Put(LZ4MessagePackSerializer.Serialize(num), LZ4MessagePackSerializer.Serialize(block),
