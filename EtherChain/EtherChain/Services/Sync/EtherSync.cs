@@ -166,6 +166,7 @@ namespace EtherChain.Services.Sync
         public async Task AutoSync()
         {
             Web3 web3 = new Web3("https://mainnet.infura.io");
+            StopAutoSync = false;
             while (!StopAutoSync)
             {
                 // Get the latest block count.
