@@ -251,7 +251,7 @@ namespace EtherChain.Services.Sync
         public async Task AutoSync()
         {
             Web3 web3 = getWeb3();
-
+            StopAutoSync = false;
             while (!StopAutoSync)
             {
                 // Get the latest block count.
