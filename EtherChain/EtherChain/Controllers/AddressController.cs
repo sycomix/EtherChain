@@ -11,6 +11,10 @@ namespace EtherChain.Controllers
         [HttpGet("{add}/{id}")]
         public ActionResult<Address> Get(string id, string add)
         {
+            add = add.ToLower();
+            if (add.Substring(0, 2) == "0x")
+                add = add.Substring(2);
+
             return Program.db.GetAddress(id, add);
         }
     }
