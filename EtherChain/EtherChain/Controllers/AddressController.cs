@@ -1,9 +1,11 @@
 ﻿using EtherChain.Models;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EtherChain.Controllers
 {
     [Route("api/[controller]")]
+    [EnableCors("_myAllowSpecificOrigins")]
     [ApiController]
     public class AddressController : ControllerBase
     {
