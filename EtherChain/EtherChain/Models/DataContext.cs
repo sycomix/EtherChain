@@ -249,7 +249,7 @@ namespace EtherChain.Models
             }
 
             // Delete the block
-            _db.Remove(LZ4MessagePackSerializer.Serialize(number));
+            _db.Remove(LZ4MessagePackSerializer.Serialize(number), GetColFamily(blockChain));
         }
 
         public void Put(string key, string value, string coinName)
