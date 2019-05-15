@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.IO;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using EtherChain.Models;
@@ -47,52 +48,75 @@ namespace EtherChain.Services.Sync
             string dir = Directory.GetCurrentDirectory();
             if (dir.IndexOf("EtherChain") > 0)
                 dir = dir.Substring(0, dir.IndexOf("EtherChain") + 10);
-            dir += "\\deps\\ethereum-etl";
+            dir += "/deps/ethereum-etl";
             Console.WriteLine("ethereumetl directory = " + dir);
         }
 
         public void Sync(BigInteger fromBlock, BigInteger toBlock)
         {
             Console.WriteLine($"Getting transactions from block {fromBlock} to {toBlock}");
+
+            bool isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+            bool isLinux = RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
+
+            string python3 = "python";
+            if (isLinux)
+                python3 = "python3";
+
             // Run etl to extract data
             System.Diagnostics.Process process = new System.Diagnostics.Process();
             System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
-            startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
-            startInfo.FileName = "cmd.exe";
+
+            // Create command
             string dir = Directory.GetCurrentDirectory();
             if (dir.IndexOf("EtherChain") > 0)
                 dir = dir.Substring(0, dir.IndexOf("EtherChain") + 10);
-            dir += "\\deps\\ethereum-etl";
+            dir += "/deps/ethereum-etl";
             startInfo.WorkingDirectory = dir;
+            string cmd = "";
             if (_blockChain == "ETH")
-                startInfo.Arguments =
-                    $"/C python ethereumetl.py export_blocks_and_transactions --start-block {fromBlock} --end-block {toBlock} --provider-uri https://rinkeby.infura.io/v3/c0dd8bd86ad74cb086080c399f006894 --transactions-output tx.csv";
+                cmd =
+                    $"{python3} ethereumetl.py export_blocks_and_transactions --start-block {fromBlock} --end-block {toBlock} --provider-uri https://rinkeby.infura.io/v3/c0dd8bd86ad74cb086080c399f006894 --transactions-output tx.csv";
             else if (_blockChain == "ERC20")
-                startInfo.Arguments =
-                    $"/C python ethereumetl.py export_token_transfers --start-block {fromBlock} --end-block {toBlock} --provider-uri wss://mainnet.infura.io/ws --output erc20.csv -w 1";
+                cmd =
+                    $"{python3} ethereumetl.py export_token_transfers --start-block {fromBlock} --end-block {toBlock} --provider-uri wss://mainnet.infura.io/ws --output erc20.csv -w 1";
             if (_blockChain == "ETC")
-                startInfo.Arguments =
-                    $"/C python ethereumetl.py export_blocks_and_transactions --start-block {fromBlock} --end-block {toBlock} --provider-uri https://ethereumclassic.network --transactions-output etc.csv";
+                cmd =
+                    $"{python3} ethereumetl.py export_blocks_and_transactions --start-block {fromBlock} --end-block {toBlock} --provider-uri https://ethereumclassic.network --transactions-output etc.csv";
+
+            if (isWindows)
+            {
+                startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
+                startInfo.FileName = "cmd.exe";
+                startInfo.Arguments = $"/C {cmd}";
+            }
+            else if (isLinux)
+            {
+                startInfo.FileName = "/bin/bash";
+                startInfo.Arguments = $"-c \"{cmd}\"";
+                startInfo.UseShellExecute = false;
+                startInfo.CreateNoWindow = true;
+            }
 
             process.StartInfo = startInfo;
             process.Start();
             process.WaitForExit();
 
-            if (_blockChain == "ETH" && !File.Exists(dir + "\\tx.csv"))
+            if (_blockChain == "ETH" && !File.Exists(dir + "/tx.csv"))
             {
                 Console.WriteLine("ERROR: tx.csv file not created.");
                 Thread.Sleep(1000);
                 return;
             }
 
-            if (_blockChain == "ETC" && !File.Exists(dir + "\\etc.csv"))
+            if (_blockChain == "ETC" && !File.Exists(dir + "/etc.csv"))
             {
                 Console.WriteLine("ERROR: etc.csv file not created.");
                 Thread.Sleep(1000);
                 return;
             }
 
-            if (_blockChain == "ERC20" && !File.Exists(dir + "\\erc20.csv"))
+            if (_blockChain == "ERC20" && !File.Exists(dir + "/erc20.csv"))
             {
                 Console.WriteLine("ERROR: erc20.csv file not created.");
                 Thread.Sleep(1000);
@@ -105,8 +129,8 @@ namespace EtherChain.Services.Sync
                 filename = "etc.csv";
             else if (_blockChain == "ERC20")
                 filename = "erc20.csv";
-            string[] lines = File.ReadAllLines(dir + "\\" + filename);
-            File.Delete(dir + "\\" + filename);
+            string[] lines = File.ReadAllLines(dir + "/" + filename);
+            File.Delete(dir + "/" + filename);
             int c = 2;
             Block block = new Block();
             BigInteger blockNo = 0;

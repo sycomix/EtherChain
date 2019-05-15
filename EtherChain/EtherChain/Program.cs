@@ -47,13 +47,42 @@ namespace EtherChain
             Console.WriteLine("Shutdown the sync.");
             if (syncEth != null)
                 syncEth.StopAutoSync = true;
-            autoSyncEth?.Wait();
+            WaitForSync(ref autoSyncEth);
             if (syncEtc != null)
                 syncEtc.StopAutoSync = true;
-            autoSyncEtc?.Wait();
+            WaitForSync(ref autoSyncEtc);
             if (syncErc20 != null)
                 syncErc20.StopAutoSync = true;
-            autoSyncErc20?.Wait();
+            WaitForSync(ref autoSyncErc20);
+
+            // Dispose the database
+            db.Dispose();
+            Console.WriteLine("Shutdown was successful.");
+        }
+
+        private static void WaitForSync(ref Task sync)
+        {
+            if (sync == null)
+                return;
+
+            try
+            {
+                sync.Wait();
+            }
+            catch (AggregateException e)
+            {
+                Console.WriteLine("\nAggregateException thrown with the following inner exceptions:");
+                // Display information about each exception. 
+                foreach (var v in e.InnerExceptions)
+                {
+                    if (v is TaskCanceledException)
+                        Console.WriteLine("   TaskCanceledException: Task {0}",
+                            sync.Id);
+                    else
+                        Console.WriteLine("   Exception: {0}", v.GetType().Name);
+                }
+                Console.WriteLine();
+            }
         }
 
         public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
