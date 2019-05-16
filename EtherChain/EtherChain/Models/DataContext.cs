@@ -120,14 +120,6 @@ namespace EtherChain.Models
 
         private void PutAddress(Address address, string name, string coinName)
         {
-            if (AppSettings.TransactionLimit > 0 && address.TrKeys.Count > AppSettings.TransactionLimit)
-            {
-                // Remove the earliest transaction from database.
-                var txId = address.TrKeys[0];
-                _db.Remove(LZ4MessagePackSerializer.Serialize(txId), GetColFamily(coinName + ":tx"));
-                address.TrKeys.RemoveAt(0);
-            }
-
             _db.Put(Encoding.ASCII.GetBytes(name), LZ4MessagePackSerializer.Serialize(address), 
                 GetColFamily(coinName));
         }
