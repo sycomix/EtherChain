@@ -38,7 +38,7 @@ namespace EtherChain.Controllers
                 if ( req.isGetTx && a.TrKeys.Count > 0)
                 {
                     txs = new List<Transaction>();
-                    for( int i = a.TrKeys.Count-1; i > 0 ; i--)
+                    for( int i = a.TrKeys.Count-1; i >= 0 ; i--)
                     {
                         txs.Add(Program.db.GetTransaction(a.TrKeys[i], req.coinName));
                     }
